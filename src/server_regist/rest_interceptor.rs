@@ -12,7 +12,7 @@ impl Middleware for LoggingMiddleware {
         extensions: &mut Extensions,
         next: Next<'_>,
     ) -> Result<Response> {
-        println!("Request started {:?}  {:?}", req.url(), extensions);
+        println!("Request started {:?}  {:?}", req, extensions);
         let res = next.run(req, extensions).await;
         println!("Result: {:?}", res);
         res
