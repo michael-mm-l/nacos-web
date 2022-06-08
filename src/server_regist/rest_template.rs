@@ -17,7 +17,7 @@ pub struct NacosService;
 
 impl NacosService {
     pub fn new() -> Self {
-        let mut map: HashMap<String, InstanceStruct> = HashMap::new();
+        let map: HashMap<String, InstanceStruct> = HashMap::new();
         NACOS_INSTANCE_LIST.set(map).unwrap();
         NacosService
     }
@@ -31,7 +31,8 @@ impl NacosService {
         };
 
         let mut mut_handle = NACOS_INSTANCE_LIST.write().unwrap();
-        mut_handle.insert("dd".to_string(), instace_map);
+        mut_handle.insert("dd".to_string(), instace_map.clone());
+        println!("insert globle value");
     }
 
     pub fn getValue() {

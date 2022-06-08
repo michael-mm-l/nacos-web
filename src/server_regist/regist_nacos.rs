@@ -1,12 +1,10 @@
+use crate::server_regist::read_config::Config;
+use local_ipaddress;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Url};
-use std::collections::HashMap;
-use std::thread;
-use std::time::Duration;
-use tokio::task;
-use local_ipaddress;
 use serde_derive::Serialize;
-use crate::server_regist::read_config::Config;
+use tokio::task;
+use tokio::time;
 
 #[derive(Serialize)]
 struct Beat {
@@ -17,40 +15,42 @@ struct Beat {
     weight: String,
 }
 
-pub struct Instance;
+pub struct RegistNacosTask;
 
 /**
  * service regist and beat to nacos
  */
-impl Instance {
+impl RegistNacosTask {
     pub async fn regist_task() {
         let config = Config::new();
-        Instance::regist(config).await;
+        RegistNacosTask::regist(config).await;
     }
 
     pub fn beat_task() {
         let config = Config::new();
+        let start = time::Instant::now();
+        let mut interval = time::interval_at(start, time::Duration::from_secs(10));
         task::spawn(async move {
             loop {
-                thread::sleep(Duration::from_secs(5));
-                Instance::beat(config.clone()).await;
+                interval.tick().await;
+                RegistNacosTask::beat(config.clone()).await;
             }
         });
     }
 
-
-    // 像nacos 注册当前主机接口
     async fn regist(config: Config) {
         println!("regis start");
         let client = Client::new();
         let mut header = HeaderMap::new();
         header.insert("Content-Type", "application/json".parse().unwrap());
 
-        let url_str = format!("http://{}:{}/nacos/v1/ns/instance",
-                              config.nacos_server, config.nacos_port
+        let url_str = format!(
+            "http://{}:{}/nacos/v1/ns/instance",
+            config.nacos_server, config.nacos_port
         );
         let mut url = Url::parse(url_str.as_str()).unwrap();
-        url.query_pairs_mut().append_pair("ip", local_ipaddress::get().unwrap().as_str())
+        url.query_pairs_mut()
+            .append_pair("ip", local_ipaddress::get().unwrap().as_str())
             .append_pair("port", config.port.as_str())
             .append_pair("serviceName", config.name.as_str());
 
@@ -80,12 +80,15 @@ impl Instance {
             weight: "1".to_string(),
         };
 
-        let url_str = format!("http://{}:{}/nacos/v1/ns/instance/beat",
-                              config.nacos_server, config.nacos_port);
+        let url_str = format!(
+            "http://{}:{}/nacos/v1/ns/instance/beat",
+            config.nacos_server, config.nacos_port
+        );
         let mut url = Url::parse(url_str.as_str()).unwrap();
         let beat_str = serde_json::to_string(&beat).unwrap();
-        url.query_pairs_mut().append_pair("serviceName", con.name.as_str())
-            .append_pair("beat",beat_str.as_str());
+        url.query_pairs_mut()
+            .append_pair("serviceName", con.name.as_str())
+            .append_pair("beat", beat_str.as_str());
 
         let resp = match client.put(url).headers(header).send().await {
             Ok(resp) => resp,
