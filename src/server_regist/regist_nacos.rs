@@ -15,30 +15,49 @@ struct Beat {
     weight: String,
 }
 
-pub struct RegistNacosTask;
+pub struct RegistNacosTask {
+    pub config: Config,
+}
 
 /**
  * service regist and beat to nacos
  */
 impl RegistNacosTask {
-    pub async fn regist_task() {
-        let config = Config::new();
-        RegistNacosTask::regist(config).await;
+    pub fn new() -> Self {
+        RegistNacosTask {
+            config: Config::new(),
+        }
     }
 
-    pub fn beat_task() {
-        let config = Config::new();
+    pub async fn task(&self) {
+        self.regist_task().await;
+        self.beat_task();
+    }
+
+    async fn regist_task(&self) {
+        let config = self.config.clone();
+        match RegistNacosTask::regist(config).await {
+            Ok(_) => (),
+            Err(e) => panic!("regist service error {:?}", e),
+        };
+    }
+
+    fn beat_task(&self) {
         let start = time::Instant::now();
         let mut interval = time::interval_at(start, time::Duration::from_secs(10));
+        let config = self.config.clone();
         task::spawn(async move {
             loop {
                 interval.tick().await;
-                RegistNacosTask::beat(config.clone()).await;
+                match RegistNacosTask::beat(config.clone()).await {
+                    Ok(_) => (),
+                    Err(e) => panic!("beat error {:?}", e),
+                };
             }
         });
     }
 
-    async fn regist(config: Config) {
+    async fn regist(config: Config) -> Result<(), reqwest::Error> {
         println!("regis start");
         let client = Client::new();
         let mut header = HeaderMap::new();
@@ -54,18 +73,11 @@ impl RegistNacosTask {
             .append_pair("port", config.port.as_str())
             .append_pair("serviceName", config.name.as_str());
 
-        let resp = match client.post(url).send().await {
-            Ok(resp) => resp,
-            Err(e) => panic!("{:?}", e),
-        };
-
-        if resp.status() != 200 {
-            println!("service regist error");
-        }
-        println!("service regist seccussful");
+        client.post(url).send().await?;
+        Ok(())
     }
 
-    async fn beat(config: Config) {
+    async fn beat(config: Config) -> Result<(), reqwest::Error> {
         println!("beat start");
         let client = Client::new();
         let mut header = HeaderMap::new();
@@ -90,14 +102,7 @@ impl RegistNacosTask {
             .append_pair("serviceName", con.name.as_str())
             .append_pair("beat", beat_str.as_str());
 
-        let resp = match client.put(url).headers(header).send().await {
-            Ok(resp) => resp,
-            Err(e) => panic!("{:?}", e),
-        };
-
-        if resp.status() != 200 {
-            println!("service beat error {:?}", resp);
-        }
-        println!("service beat seccussful");
+        client.put(url).headers(header).send().await;
+        Ok(())
     }
 }

@@ -1,5 +1,6 @@
+use crate::server_regist::rest_client_task;
 use reqwest::{Client, Request, Response};
-use reqwest_middleware::{ClientBuilder, Middleware, Next, Result};
+use reqwest_middleware::{ClientBuilder, ClientWithMiddleware, Middleware, Next, Result};
 use task_local_extensions::Extensions;
 
 struct LoggingMiddleware;
@@ -19,17 +20,9 @@ impl Middleware for LoggingMiddleware {
     }
 }
 
-pub async fn run() {
+pub async fn run() -> ClientWithMiddleware {
     let reqwest_client = Client::builder().build().unwrap();
-    let client = ClientBuilder::new(reqwest_client)
+    ClientBuilder::new(reqwest_client)
         .with(LoggingMiddleware)
-        .build();
-    let resp = client
-        .get(
-            "http://10.130.136.101:8848/nacos/v1/ns/instance/list?serviceName=saascloud-scms-admin",
-        )
-        .send()
-        .await
-        .unwrap();
-    println!("TrueLayer page HTML: {}", resp.text().await.unwrap());
+        .build()
 }
