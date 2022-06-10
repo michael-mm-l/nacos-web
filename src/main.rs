@@ -4,18 +4,18 @@ extern crate mut_static;
 
 mod server_regist;
 use actix_web::{get, App, HttpServer, Responder};
-use server_regist::regist_nacos::RegistNacosTask;
-use server_regist::rest_template;
+use server_regist::{read_config::Config, regist_nacos::RegistNacosTask, rest_template};
 
 #[get("/")]
 async fn index() -> impl Responder {
-    rest_template::NacosService::foo();
+    let config = Config::new();
+    rest_template::NacosService::update_instance_list(config);
     format!("{:?}", "dd")
 }
 
 #[get("/test")]
 async fn index11() -> impl Responder {
-    rest_template::NacosService::getValue();
+    rest_template::NacosService::get_Value();
     format!("dsdsdsd")
 }
 

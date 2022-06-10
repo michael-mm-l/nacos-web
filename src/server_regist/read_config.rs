@@ -1,4 +1,3 @@
-use local_ipaddress;
 use serde_derive::Deserialize;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -10,7 +9,7 @@ pub struct Config {
     pub name: String,
     pub nacos_server: String,
     pub nacos_port: String,
-    pub nacos_namespace: Option<String>
+    pub nacos_namespace: Option<String>,
 }
 
 impl Config {
@@ -30,4 +29,3 @@ impl Config {
         config
     }
 }
-
